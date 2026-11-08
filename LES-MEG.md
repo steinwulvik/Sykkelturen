@@ -1,32 +1,46 @@
 # Rutevær og terreng
 
-En lokal læringsapp som viser en sykkelrute mellom to steder, terrenghøyde langs ruta, vær ved start/midtveis/mål og luftkvalitetsvarsel for området ved rutemidtpunktet.
+En webapp som viser en sykkelrute mellom to steder, terrenghøyde langs ruta, vær ved start, midtveis og mål, luftkvalitetsvarsel for området ved rutemidtpunktet og kollektivholdeplasser nær ruta.
 
-## Start lokalt
+## Oppbygning
 
-Installer Python 3. Installer avhengighetene og start serveren fra denne mappen:
+- `public/index.html`: hele nettsiden (kart, skjema og kort).
+- `functions/api/[[path]].js`: Cloudflare Pages Function som henter data fra de åpne tjenestene under `/api/…`, slik at nettleseren bare snakker med appens eget domene.
 
-```powershell
-python -m pip install -r requirements.txt
-python server.py
+| Adresse | Henter fra |
+|---|---|
+| `/api/geocode?q=` | OpenStreetMap Nominatim |
+| `/api/cycle/route?lon1=&lat1=&lon2=&lat2=` | BRouter (profil «trekking») |
+| `/api/elevation?points=` | Kartverket høydedata |
+| `/api/weather?lat=&lon=` | MET Locationforecast |
+| `/api/airquality?lat=&lon=` | MET Air Quality Forecast |
+| `/api/transit?lat=&lon=` | Entur Journey Planner |
+
+## Kjør lokalt
+
+Installer Node.js og kjør fra denne mappen:
+
+```bash
+npx wrangler pages dev public
 ```
 
-Åpne http://127.0.0.1:8002. Hold terminalvinduet åpent mens appen kjører. Stopp serveren med Ctrl+C.
+Åpne adressen Wrangler skriver ut (vanligvis http://localhost:8788).
+
+## Publisering
+
+Appen publiseres med Cloudflare Pages fra dette repoet: ingen byggkommando og utdatamappe `public`. Mappen `functions` blir publisert som Pages Functions. Miljøvariabelen `MET_USER_AGENT` kan settes for å identifisere appen overfor MET og Nominatim; ellers brukes en standardverdi med lenke til repoet.
 
 ## Datakilder
 
 - **Kartverket:** topografisk kart og høydedata.
 - **MET:** værvarsel og modellert luftkvalitetsvarsel. Luftkvalitet vises som varsel, ikke som sanntidsmålinger fra en lokal sensor.
-- **Entur:** aktive kollektivholdeplasser nær utvalgte punkter langs ruta. Oppslaget bruker `ET-Client-Name` og spør etter holdeplasser innenfor 3 km rundt hvert punkt; nettsiden viser dem når de ligger inntil 1,2 km fra rutelinjen.
+- **Entur:** aktive kollektivholdeplasser innenfor 3 km rundt utvalgte punkter langs ruta. Nettsiden viser dem når de ligger inntil 1,2 km fra rutelinjen.
 - **BRouter:** sykkelrute.
-- **OpenStreetMap Nominatim:** oppslag av stedsnavn. Bruk oppslag med måte; tjenesten er felles og har bruksregler.
+- **OpenStreetMap Nominatim:** oppslag av stedsnavn. Tjenesten er felles og har bruksregler, så oppslagene holdes få.
 
-Trafikkestimat og trafikkmeldinger er tatt ut av denne førsteversjonen. Luftkvalitetsvarselet forenkles til Bra, Moderat eller Dårlig basert på METs samlede AQI-varsel.
+## Begrensninger
 
-MET ber om en beskrivende `User-Agent`. Lokalt brukes `TryggSykkeltur/0.2 (lokalt læringsprosjekt)`. Før offentlig publisering bør denne settes til en identifiserende verdi med kontaktinformasjon, for eksempel ved å sette miljøvariabelen `MET_USER_AGENT` i driftsmiljøet.
-
-Høydeprofilen bruker ni punkter jevnt fordelt langs ruta og viser meter over havet mot kilometer. Punktene gir en forenklet profil, ikke en detaljert veianalyse. Vær og luftkvalitet gjelder prognoseområder/punkter og kan avvike lokalt. Ingen av kortene er en full vurdering av sykkelsikkerhet.
-
-## Publisering
-
-Opprett en Web Service i Render fra repoet `steinwulvik/Sykkelturen`, med `pip install -r requirements.txt` som Build Command og `python server.py` som Start Command. Sett `MET_USER_AGENT` med kontaktinformasjon i Render-miljøet før offentlig bruk.
+- Luftkvalitetsvarselet forenkles til Bra, Moderat eller Dårlig basert på METs samlede AQI-varsel.
+- Høydeprofilen bruker ni punkter jevnt fordelt langs ruta og viser meter over havet mot kilometer. Den gir en forenklet profil, ikke en detaljert veianalyse.
+- Vær og luftkvalitet gjelder prognoseområder og punkter og kan avvike lokalt.
+- Appen viser ikke trafikkmengde eller trafikkmeldinger, og ingen av kortene er en full vurdering av sykkelsikkerhet.
